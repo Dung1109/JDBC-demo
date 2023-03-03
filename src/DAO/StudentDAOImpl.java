@@ -3,10 +3,7 @@ package DAO;
 import modelStudent.Student;
 import utility.DBUtils;
 
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,7 +14,72 @@ public class StudentDAOImpl implements StudentDAO {
 
     @Override
     public Boolean saveAll(List<Student> students) {
-        return null;
+        try (Connection conn = new DBUtils().getConnection()) {
+            String sql = "INSERT INTO STUDENT VALUES (?, ?)";
+            PreparedStatement stm = conn.prepareStatement(sql); // 5 Statement => execute => ResultSet
+            int row = 0;
+
+            for (Student student : students) {
+                stm.setString(1, student.getName());
+                stm.setDouble(2, student.getMark());
+                stm.executeUpdate();
+                row++;
+            }
+            System.out.println("Record inserted : " + row);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return true;
+    }
+
+    @Override
+    public Boolean saveAllByTransaction(List<Student> students) {
+        try (Connection conn = new DBUtils().getConnection()) {
+            String sql = "INSERT INTO STUDENT VALUES (?, ?)";
+            PreparedStatement stm = conn.prepareStatement(sql); // 5 Statement => execute => ResultSet
+            int row = 0;
+            conn.setAutoCommit(false);
+
+            for (Student student : students) {
+                stm.setString(1, student.getName());
+                stm.setDouble(2, student.getMark());
+                stm.executeUpdate();
+                row++;
+            }
+            System.out.println("Record inserted : " + row);
+
+            conn.commit();
+            conn.setAutoCommit(true);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return true;
+    }
+
+    @Override
+    public Boolean saveAllByBatch(List<Student> students) {
+        try (Connection conn = new DBUtils().getConnection()) {
+            String sql = "INSERT INTO STUDENT VALUES (?, ?)";
+            PreparedStatement stm = conn.prepareStatement(sql); // 5 Statement => execute => ResultSet
+            int row = 0;
+            conn.setAutoCommit(false);
+
+            for (Student student : students) {
+                stm.setString(1, student.getName());
+                stm.setDouble(2, student.getMark());
+
+                stm.addBatch();
+                row++;
+            }
+            System.out.println("Record inserted : " + row);
+            stm.executeBatch();
+
+            conn.commit();
+            conn.setAutoCommit(true);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return true;
     }
 
     @Override
@@ -31,23 +93,8 @@ public class StudentDAOImpl implements StudentDAO {
         List<Student> students = new ArrayList<>();
 
         try (Connection conn = new DBUtils().getConnection()) {
-            // 1. Add lib (implementation)
-
-
-            // 2. Load driver JDBC for sql server
-//            Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-//
-//            // 3. Driver manager => Connection (url, user, password)
-//            String url = "jdbc:sqlserver://DESKTOP-5MKJPAU\\SQLEXPRESS;databaseName=StudentMS";
-////            String user = "sa";
-////            String password = "123456";
-//            Connection conn = DriverManager.getConnection(url);
-
-
-            // 4. Connection => Statement (SQL)
 
             Statement stm = conn.createStatement();
-
 
             // 5. Statement => ResultSet (executeQuery)
             String sql = "SELECT * FROM Student";
@@ -74,6 +121,7 @@ public class StudentDAOImpl implements StudentDAO {
 
     @Override
     public Student readDetail(Integer id) {
+
         return null;
     }
 
@@ -149,7 +197,7 @@ public class StudentDAOImpl implements StudentDAO {
 
     @Override
     public int insert(String name, double mark) {
-            try (Connection conn = new DBUtils().getConnection()) {
+        try (Connection conn = new DBUtils().getConnection()) {
             // 1. Add lib (implementation)
             Statement stm = conn.createStatement();
             String sql = "INSERT INTO Student (name, mark) VALUES ('" + name + "', " + mark + ")";
@@ -161,5 +209,47 @@ public class StudentDAOImpl implements StudentDAO {
             e.printStackTrace();
         }
         return 0;
+    }
+
+    @Override
+    public double sumMark(Integer id) {
+        try (Connection conn = new DBUtils().getConnection()) {
+            // 1. Add lib (implementation)
+            Statement stm = conn.createStatement();
+            String sql = "SELECT SUM(mark) FROM Student WHERE id = " + id;
+//            ResultSet rs = stm.executeQuery(sql);
+
+            stm.executeQuery(sql);
+            ResultSet rs = stm.getResultSet();
+            // find column name of result set
+            String columnCount = rs.getMetaData().getColumnName(1);
+            System.out.println("columnCount = " + columnCount);
+
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    @Override
+    public Student saveUseStore(Student student) {
+        try (Connection conn = new DBUtils().getConnection()) {
+            String sql = "{ CALL sp_Student_insert(?, ?, ?, ?) }";
+            CallableStatement stm = conn.prepareCall(sql);
+            stm.setString(1, student.getName());
+            stm.setDouble(2, student.getMark());
+            stm.registerOutParameter(3, Types.VARCHAR);
+            stm.registerOutParameter(4, Types.VARCHAR);
+            stm.execute();
+            System.out.println("Output 1: " + stm.getString(3));
+            System.out.println("Output 2: " + stm.getString(4));
+//            System.out.println("Done");
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return student;
     }
 }

@@ -7,6 +7,8 @@ import java.util.List;
 public interface StudentDAO{
 
     Boolean saveAll(List<Student> students);
+    Boolean saveAllByTransaction(List<Student> students);
+    Boolean saveAllByBatch(List<Student> students);
 
     Student save(Student student);
 
@@ -24,4 +26,7 @@ public interface StudentDAO{
 
     int insert(String name, double mark);
 
+    double sumMark(Integer id);
+
+    Student saveUseStore(Student student);
 }
